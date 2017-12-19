@@ -1,0 +1,19 @@
+allprojects {
+    apply plugin: 'java'
+
+    group 'ru.hardcoders.demo.webflux'
+
+    ext {
+       springVersion = '5.0.0.RELEASE'
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    test {
+        useTestNG()
+    }
+
+}
