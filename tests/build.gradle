@@ -4,13 +4,15 @@ dependencies {
     testCompile "org.mockito:mockito-all:1.10.19"
     testCompile "org.springframework:spring-test:$springVersion"
     testCompile "org.skyscreamer:jsonassert:1.2.3"
-
+    testCompile "com.jayway.jsonpath:json-path:2.4.0"
 
     testCompile "org.springframework:spring-webflux:$springVersion"
     testCompile "org.springframework:spring-web:$springVersion"
     testCompile "org.springframework:spring-context:$springVersion"
 
-
     testCompile "io.projectreactor.ipc:reactor-netty:0.7.2.RELEASE"
+
+    testCompile "com.fasterxml.jackson.core:jackson-core:2.9.2"
+    testCompile "com.fasterxml.jackson.core:jackson-databind:2.9.2"
 
 }
