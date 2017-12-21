@@ -54,13 +54,13 @@ public class PayloadLoggingWebFilter implements WebFilter {
 
                         if (logger.isDebugEnabled()) {
                             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            return super.getBody().flatMap(dataBuffer -> {
+                            return super.getBody().map(dataBuffer -> {
                                 try {
                                     Channels.newChannel(baos).write(dataBuffer.asByteBuffer().asReadOnlyBuffer());
                                 } catch (IOException e) {
                                     logger.error("Unable to log input request due to an error", e);
                                 }
-                                return Flux.just(dataBuffer);
+                                return dataBuffer;
                             }).doOnComplete(() -> flushLog(baos));
 
                         } else {
