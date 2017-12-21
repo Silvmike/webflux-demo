@@ -32,8 +32,8 @@ import java.util.concurrent.Future;
 public class TestSyncVsAsync {
 
     public static final int TEST_COUNT = LoopResources.DEFAULT_IO_WORKER_COUNT * 2;
-    public static final int awaitTimeSeconds = 2;
-    public static final long EXPECTED_TIME = ((TEST_COUNT + 1) * Duration.ofSeconds(awaitTimeSeconds).toMillis()) / LoopResources.DEFAULT_IO_WORKER_COUNT;
+    private static final int awaitTimeSeconds = 2;
+    private static final long EXPECTED_TIME = ((TEST_COUNT + 1) * Duration.ofSeconds(awaitTimeSeconds).toMillis()) / LoopResources.DEFAULT_IO_WORKER_COUNT;
 
     @Test(enabled = false) /* to run manually, starts server on localhost */
     public void testSyncNetty() throws Exception {
@@ -160,14 +160,6 @@ public class TestSyncVsAsync {
         handlerMapping.afterPropertiesSet();
 
         return new DispatcherHandler(applicationContext);
-    }
-
-    private void assertTestResult(WebTestClient testClient) {
-        testClient.get().uri("/")
-                .accept(MediaType.APPLICATION_JSON_UTF8)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody().jsonPath("$.bar").isEqualTo("OK");
     }
 
 }

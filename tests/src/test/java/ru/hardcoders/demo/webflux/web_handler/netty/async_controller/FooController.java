@@ -28,7 +28,7 @@ public class FooController implements DisposableBean {
     }
 
     @GetMapping(value = "/async/{timeout}")
-    public Mono<Foo> async(@PathVariable Integer timeout) throws InterruptedException {
+    public Mono<Foo> async(@PathVariable Integer timeout) {
         return Mono.fromFuture(CompletableFuture.supplyAsync(() -> {
             try {
                 Thread.currentThread().sleep(Duration.ofSeconds(timeout.longValue()).toMillis());
@@ -41,7 +41,7 @@ public class FooController implements DisposableBean {
     }
 
     @Override
-    public void destroy() throws Exception {
+    public void destroy() {
         executor.shutdown();
     }
 

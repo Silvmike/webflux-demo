@@ -19,7 +19,7 @@ import java.util.Optional;
 
 public class PayloadLoggingWebFilter implements WebFilter {
 
-    public static final ByteArrayOutputStream EMPTY_BYTE_ARRAY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
+    private static final ByteArrayOutputStream EMPTY_BYTE_ARRAY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
 
     private final Logger logger;
     private final boolean encodeBytes;

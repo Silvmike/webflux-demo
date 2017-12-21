@@ -1,6 +1,6 @@
 package ru.hardcoders.demo.webflux.web_handler.annotated.flux;
 
-public class Foo {
+class Foo {
 
     private String bar;
 
