@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 import java.io.ByteArrayOutputStream;
 import java.util.Optional;
 
-public class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator implements WithMemoizingFunction {
+class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator implements WithMemoizingFunction {
 
     private final Logger logger;
     private final MediaTypeFilter mediaTypeFilter;

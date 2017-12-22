@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux;
 import java.io.ByteArrayOutputStream;
 import java.util.Optional;
 
-public class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorator implements WithMemoizingFunction {
+class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorator implements WithMemoizingFunction {
 
     private final Logger logger;
     private final MediaTypeFilter mediaTypeFilter;
