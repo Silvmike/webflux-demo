@@ -15,29 +15,33 @@ public class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorato
     private final Logger logger;
     private final MediaTypeFilter mediaTypeFilter;
     private final PayloadAdapter payloadAdapter;
+    private final Flux<DataBuffer> decoratedBody;
 
     public LoggingServerHttpRequestDecorator(ServerHttpRequest delegate, Logger logger, MediaTypeFilter mediaTypeFilter, PayloadAdapter payloadAdapter) {
         super(delegate);
         this.logger = logger;
         this.mediaTypeFilter = mediaTypeFilter;
         this.payloadAdapter = payloadAdapter;
+        this.decoratedBody = decorateBody(delegate.getBody());
         flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM); // getBody() isn't called when controller doesn't need it.
+    }
+
+    private Flux<DataBuffer> decorateBody(Flux<DataBuffer> body) {
+        MediaType mediaType = getHeaders().getContentType();
+        if (logger.isDebugEnabled() && mediaTypeFilter.logged(mediaType)) {
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            return body.map(getMemoizingFunction(baos)).doOnComplete(() -> flushLog(baos));
+        } else {
+            return body.doOnComplete(() -> flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM));
+        }
     }
 
     @Override
     public Flux<DataBuffer> getBody() {
-        MediaType mediaType = getHeaders().getContentType();
-        if (logger.isDebugEnabled() && mediaTypeFilter.logged(mediaType)) {
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            return super.getBody().map(getMemoizingFunction(baos)).doOnComplete(() -> flushLog(baos));
-        } else {
-            return super.getBody().doOnComplete(() -> flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM));
-        }
+        return this.decoratedBody;
     }
 
     private void flushLog(ByteArrayOutputStream baos) {
-        MediaType mediaType = getHeaders().getContentType();
-        boolean logged = mediaTypeFilter.logged(mediaType);
         if (logger.isInfoEnabled()) {
             StringBuilder data = new StringBuilder();
             data.append('[').append(getMethodValue())
@@ -49,7 +53,7 @@ public class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorato
                                     .orElse("null")
                     );
             if (logger.isDebugEnabled()) {
-                if (logged) {
+                if (mediaTypeFilter.logged(getHeaders().getContentType())) {
                     data.append(" with payload [\n");
                     data.append(payloadAdapter.toString(baos.toByteArray()));
                     data.append("\n]");
