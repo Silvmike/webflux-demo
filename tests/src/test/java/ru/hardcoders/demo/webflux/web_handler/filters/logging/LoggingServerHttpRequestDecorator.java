@@ -47,7 +47,7 @@ public class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorato
                                     .map(addr -> addr.getHostString())
                                     .orElse("null")
                     );
-            if (logger.isDebugEnabled() && baos != EMPTY_BYTE_ARRAY_OUTPUT_STREAM) {
+            if (logger.isDebugEnabled()) {
                 if (logged) {
                     data.append(" with payload [\n");
                     if (mediaTypeFilter.encoded(mediaType)) {
