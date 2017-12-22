@@ -11,6 +11,7 @@ import reactor.core.publisher.Mono;
 public class RequestLoggingWebFilter implements WebFilter {
 
     private static final MediaTypeFilter DEFAULT_FILTER = new MediaTypeFilter() {};
+    private static final LogMessageFormatter DEFAULT_LOG_MESSAGE_FORMATTER = new LoggingServerHttpRequestDecorator.DefaultLogMessageFormatter();
 
     private final Logger logger;
 
@@ -25,7 +26,7 @@ public class RequestLoggingWebFilter implements WebFilter {
     public RequestLoggingWebFilter(Logger logger, MediaTypeFilter mediaTypeFilter) {
         this.logger = logger;
         this.mediaTypeFilter = mediaTypeFilter;
-        this.logMessageFormatter = new LoggingServerHttpRequestDecorator.DefaultLogMessageFormatter();
+        this.logMessageFormatter = DEFAULT_LOG_MESSAGE_FORMATTER;
     }
 
     public MediaTypeFilter getMediaTypeFilter() {
