@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.nio.channels.Channels;
 import java.util.function.Function;
 
-public interface WithMemoizingFunction {
+interface WithMemoizingFunction {
 
     ByteArrayOutputStream EMPTY_BYTE_ARRAY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
 
