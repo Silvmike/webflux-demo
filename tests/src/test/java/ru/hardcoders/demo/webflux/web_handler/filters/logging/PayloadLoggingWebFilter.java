@@ -1,36 +1,44 @@
 package ru.hardcoders.demo.webflux.web_handler.filters.logging;
 
 import org.slf4j.Logger;
-import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.ServerWebExchangeDecorator;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.channels.Channels;
-import java.util.Optional;
 
 public class PayloadLoggingWebFilter implements WebFilter {
 
-    private static final ByteArrayOutputStream EMPTY_BYTE_ARRAY_OUTPUT_STREAM = new ByteArrayOutputStream(0);
+    public static final MediaTypeFilter DEFAULT_FILTER = new MediaTypeFilter() {};
+    public static final MediaTypeFilter ENCODING_ALL_FILTER = new MediaTypeFilter() {
+        @Override
+        public boolean encoded(MediaType mediaType) {
+            return true;
+        }
+    };
 
-    private final Logger logger;
-    private final boolean encodeBytes;
+    private Logger logger;
+
+    private MediaTypeFilter mediaTypeFilter;
 
     public PayloadLoggingWebFilter(Logger logger) {
-        this(logger, false);
+        this(logger, DEFAULT_FILTER);
     }
 
-    public PayloadLoggingWebFilter(Logger logger, boolean encodeBytes) {
+    public PayloadLoggingWebFilter(Logger logger, MediaTypeFilter mediaTypeFilter) {
         this.logger = logger;
-        this.encodeBytes = encodeBytes;
+        this.mediaTypeFilter = mediaTypeFilter;
+    }
+
+    public MediaTypeFilter getMediaTypeFilter() {
+        return mediaTypeFilter;
+    }
+
+    public void setMediaTypeFilter(MediaTypeFilter mediaTypeFilter) {
+        this.mediaTypeFilter = mediaTypeFilter;
     }
 
     @Override
@@ -45,58 +53,33 @@ public class PayloadLoggingWebFilter implements WebFilter {
     private ServerWebExchange decorate(ServerWebExchange exchange) {
         return new ServerWebExchangeDecorator(exchange) {
 
+            volatile ServerHttpRequest decoratedRequest = null;
+            volatile ServerHttpResponse decoratedResponse = null;
+
             @Override
             public ServerHttpRequest getRequest() {
-                return new ServerHttpRequestDecorator(super.getRequest()) {
-
-                    @Override
-                    public Flux<DataBuffer> getBody() {
-
-                        if (logger.isDebugEnabled()) {
-                            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            return super.getBody().map(dataBuffer -> {
-                                try {
-                                    Channels.newChannel(baos).write(dataBuffer.asByteBuffer().asReadOnlyBuffer());
-                                } catch (IOException e) {
-                                    logger.error("Unable to log input request due to an error", e);
-                                }
-                                return dataBuffer;
-                            }).doOnComplete(() -> flushLog(baos));
-
-                        } else {
-                            return super.getBody().doOnComplete(() -> flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM));
+                if (decoratedRequest == null) {
+                    synchronized (this) {
+                        if (decoratedRequest == null) {
+                            decoratedRequest = new LoggingServerHttpRequestDecorator(super.getRequest(), logger, mediaTypeFilter);
                         }
                     }
-                };
-            }
-
-            private void flushLog(ByteArrayOutputStream baos) {
-                ServerHttpRequest request = super.getRequest();
-                if (logger.isInfoEnabled()) {
-                    StringBuffer data = new StringBuffer();
-                    data.append('[').append(request.getMethodValue())
-                        .append("] '").append(String.valueOf(request.getURI()))
-                        .append("' from ")
-                            .append(
-                                Optional.ofNullable(request.getRemoteAddress())
-                                            .map(addr -> addr.getHostString())
-                                        .orElse("null")
-                            );
-                    if (logger.isDebugEnabled()) {
-                        data.append(" with payload [\n");
-                        if (encodeBytes) {
-                            data.append(new HexBinaryAdapter().marshal(baos.toByteArray()));
-                        } else {
-                            data.append(baos.toString());
-                        }
-                        data.append("\n]");
-                        logger.debug(data.toString());
-                    } else {
-                        logger.info(data.toString());
-                    }
-
                 }
+                return decoratedRequest;
             }
+
+            @Override
+            public ServerHttpResponse getResponse() {
+                if (decoratedResponse == null) {
+                    synchronized (this) {
+                        if (decoratedResponse == null) {
+                            decoratedResponse = new LoggingServerHttpResponseDecorator(super.getResponse(), super.getRequest(), logger, mediaTypeFilter);
+                        }
+                    }
+                }
+                return decoratedResponse;
+            }
+
         };
     }
 
