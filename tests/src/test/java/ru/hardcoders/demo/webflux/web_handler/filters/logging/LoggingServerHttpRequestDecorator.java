@@ -33,7 +33,7 @@ class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorator imple
         MediaType mediaType = getHeaders().getContentType();
         if (logger.isDebugEnabled() && mediaTypeFilter.logged(mediaType)) {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            return body.map(getMemoizingFunction(baos)).doOnComplete(() -> flushLog(baos));
+            return body.map(memoizingFunction(baos)).doOnComplete(() -> flushLog(baos));
         } else {
             return body.doOnComplete(() -> flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM));
         }

@@ -48,7 +48,7 @@ class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator imp
     @Override
     public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
         if (baos != EMPTY_BYTE_ARRAY_OUTPUT_STREAM) {
-            return super.writeWith(Flux.from(body).map(getMemoizingFunction(baos)));
+            return super.writeWith(Flux.from(body).map(memoizingFunction(baos)));
         } else {
             return super.writeWith(body);
         }
@@ -58,7 +58,7 @@ class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator imp
     public Mono<Void> writeAndFlushWith(Publisher<? extends Publisher<? extends DataBuffer>> body) {
         if (baos != EMPTY_BYTE_ARRAY_OUTPUT_STREAM) {
             return super.writeAndFlushWith(Flux.from(body).map( x -> {
-                return Flux.from(x).map(getMemoizingFunction(baos));
+                return Flux.from(x).map(memoizingFunction(baos));
             } ));
         } else {
             return super.writeAndFlushWith(body);

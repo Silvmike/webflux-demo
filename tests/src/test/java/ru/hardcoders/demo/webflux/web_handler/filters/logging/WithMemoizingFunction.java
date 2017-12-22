@@ -14,7 +14,7 @@ interface WithMemoizingFunction {
 
     Logger getLogger();
 
-    default Function<DataBuffer, DataBuffer> getMemoizingFunction(ByteArrayOutputStream baos) {
+    default Function<DataBuffer, DataBuffer> memoizingFunction(ByteArrayOutputStream baos) {
         return dataBuffer -> {
             try {
                 Channels.newChannel(baos).write(dataBuffer.asByteBuffer().asReadOnlyBuffer());
