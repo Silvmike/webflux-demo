@@ -22,23 +22,29 @@ import org.springframework.web.server.handler.FilteringWebHandler;
 import org.testng.annotations.Test;
 import reactor.ipc.netty.NettyContext;
 import reactor.ipc.netty.http.server.HttpServer;
-import ru.hardcoders.demo.webflux.web_handler.filters.logging.PayloadLoggingWebFilter;
+import ru.hardcoders.demo.webflux.web_handler.filters.logging.RequestLoggingWebFilter;
+import ru.hardcoders.demo.webflux.web_handler.filters.logging.ResponseLoggingWebFilter;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 public class TestLogging {
 
     private static final String TEST_STRING = "TEST";
     private static final String EXPECTED_LOG_RESULT_REQUEST = "[POST] 'http://127.0.0.1:9999/?name=xyz' from null";
-    private static final String EXPECTED_LOG_RESULT_REQUEST_DEBUG = "[POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1 with payload [\nTEST\n]";
+    private static final String EXPECTED_LOG_RESULT_REQUEST_DEBUG = "[POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1\n" +
+            "user-agent=[ReactorNetty/0.7.2.RELEASE]\n" +
+            "transfer-encoding=[chunked]\n" +
+            "host=[127.0.0.1:9999]\n" +
+            "accept=[*/*]\n" +
+            "accept-encoding=[gzip]\n" +
+            "WebTestClient-Request-Id=[1]\n" +
+            "Content-Type=[text/plain;charset=UTF-8]\n[\nTEST\n]";
 
-    private static final String EXPECTED_LOG_RESULT_RESPONSE = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null\n" +
-            "Content-Type=[application/json;charset=UTF-8]";
+    private static final String EXPECTED_LOG_RESULT_RESPONSE = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null";
     private static final String EXPECTED_LOG_RESULT_RESPONSE_DEBUG = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1\n" +
             "Content-Type=[application/json;charset=UTF-8]\n" +
-            "[\n" +
-            "4\n" +
-            "]";
+            "[\n4\n]";
 
     @Test(enabled = false) /* to run manually, starts server on localhost */
     public void testDebug() throws Exception {
@@ -53,7 +59,7 @@ public class TestLogging {
                 new HttpWebHandlerAdapter(
                         new FilteringWebHandler(
                                 dispatcherHandler,
-                                Collections.singletonList(new PayloadLoggingWebFilter(logger))
+                                Arrays.asList(new RequestLoggingWebFilter(logger), new ResponseLoggingWebFilter(logger))
                         )
                 )
         );
@@ -84,7 +90,7 @@ public class TestLogging {
         DispatcherHandler dispatcherHandler = buildWebHandler();
         final WebTestClient testClient = WebTestClient.bindToWebHandler(new FilteringWebHandler(
                 dispatcherHandler,
-                Collections.singletonList(new PayloadLoggingWebFilter(logger))
+                Arrays.asList(new RequestLoggingWebFilter(logger), new ResponseLoggingWebFilter(logger))
         )).configureClient().baseUrl("http://127.0.0.1:9999/").build();
 
         testClient.post().uri("/?name=xyz")

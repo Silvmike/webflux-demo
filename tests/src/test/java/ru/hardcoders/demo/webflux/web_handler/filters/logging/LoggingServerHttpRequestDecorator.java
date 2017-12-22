@@ -26,16 +26,16 @@ class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorator imple
         this.formatter = formatter;
         this.decoratedBody = decorateBody(delegate.getBody());
         this.response = response;
-        flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM); // getBody() isn't called when controller doesn't need it.
+        flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM, true); // getBody() isn't called when controller doesn't need it.
     }
 
     private Flux<DataBuffer> decorateBody(Flux<DataBuffer> body) {
         MediaType mediaType = getHeaders().getContentType();
         if (logger.isDebugEnabled() && mediaTypeFilter.logged(mediaType)) {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            return body.map(memoizingFunction(baos)).doOnComplete(() -> flushLog(baos));
+            return body.map(memoizingFunction(baos)).doOnComplete(() -> flushLog(baos, false));
         } else {
-            return body.doOnComplete(() -> flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM));
+            return body.doOnComplete(() -> flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM, false));
         }
     }
 
@@ -44,11 +44,11 @@ class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorator imple
         return this.decoratedBody;
     }
 
-    private void flushLog(ByteArrayOutputStream baos) {
+    private void flushLog(ByteArrayOutputStream baos, boolean onCreate) {
         if (logger.isInfoEnabled()) {
             if (logger.isDebugEnabled()) {
                 if (mediaTypeFilter.logged(getHeaders().getContentType())) {
-                    logger.debug(formatter.format(getDelegate(), this.response, baos.toByteArray()));
+                    logger.debug(formatter.format(getDelegate(), this.response, onCreate ? null : baos.toByteArray()));
                 } else {
                     logger.debug(formatter.format(getDelegate(), this.response, null));
                 }
@@ -77,7 +77,8 @@ class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorator imple
                                     .orElse("null")
                     );
             if (payload != null) {
-                data.append(" with payload [\n");
+                request.getHeaders().forEach((key, value) -> data.append('\n').append(key).append('=').append(String.valueOf(value)));
+                data.append("\n[\n");
                 data.append(new String(payload));
                 data.append("\n]");
             }

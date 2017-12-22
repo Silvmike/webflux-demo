@@ -97,8 +97,8 @@ class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator imp
                                     .map( addr -> addr.getHostString() )
                                     .orElse("null")
                     );
-            response.getHeaders().forEach((key, value) -> data.append('\n').append(key).append('=').append(String.valueOf(value)));
             if (payload != null) {
+                response.getHeaders().forEach((key, value) -> data.append('\n').append(key).append('=').append(String.valueOf(value)));
                 data.append("\n[\n");
                 data.append(new String(payload));
                 data.append("\n]");
