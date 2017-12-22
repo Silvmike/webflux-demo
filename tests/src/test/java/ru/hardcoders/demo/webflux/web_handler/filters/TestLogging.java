@@ -23,7 +23,6 @@ import org.testng.annotations.Test;
 import reactor.ipc.netty.NettyContext;
 import reactor.ipc.netty.http.server.HttpServer;
 import ru.hardcoders.demo.webflux.web_handler.filters.logging.PayloadLoggingWebFilter;
-import ru.hardcoders.demo.webflux.web_handler.filters.logging.TestController;
 
 import java.util.Collections;
 
@@ -128,7 +127,7 @@ public class TestLogging {
         beanFactory.registerSingleton("responseHandler", responseResultHandler);
 
         // controller
-        beanFactory.registerSingleton("testHandler", new TestController());
+        beanFactory.registerSingleton("testHandler", new TestLoggingController());
 
         AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(beanFactory);
 
