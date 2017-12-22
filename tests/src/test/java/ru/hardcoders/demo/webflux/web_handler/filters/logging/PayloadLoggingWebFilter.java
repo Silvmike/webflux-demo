@@ -51,32 +51,17 @@ public class PayloadLoggingWebFilter implements WebFilter {
     }
 
     private ServerWebExchange decorate(ServerWebExchange exchange) {
+        final ServerHttpRequest decoratedRequest = new LoggingServerHttpRequestDecorator(exchange.getRequest(), logger, mediaTypeFilter);
+        final ServerHttpResponse decoratedResponse = new LoggingServerHttpResponseDecorator(exchange.getResponse(), exchange.getRequest(), logger, mediaTypeFilter);
         return new ServerWebExchangeDecorator(exchange) {
-
-            volatile ServerHttpRequest decoratedRequest = null;
-            volatile ServerHttpResponse decoratedResponse = null;
 
             @Override
             public ServerHttpRequest getRequest() {
-                if (decoratedRequest == null) {
-                    synchronized (this) {
-                        if (decoratedRequest == null) {
-                            decoratedRequest = new LoggingServerHttpRequestDecorator(super.getRequest(), logger, mediaTypeFilter);
-                        }
-                    }
-                }
                 return decoratedRequest;
             }
 
             @Override
             public ServerHttpResponse getResponse() {
-                if (decoratedResponse == null) {
-                    synchronized (this) {
-                        if (decoratedResponse == null) {
-                            decoratedResponse = new LoggingServerHttpResponseDecorator(super.getResponse(), super.getRequest(), logger, mediaTypeFilter);
-                        }
-                    }
-                }
                 return decoratedResponse;
             }
 
