@@ -7,7 +7,6 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import reactor.core.publisher.Flux;
 
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 import java.io.ByteArrayOutputStream;
 import java.util.Optional;
 
@@ -15,11 +14,13 @@ public class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorato
 
     private final Logger logger;
     private final MediaTypeFilter mediaTypeFilter;
+    private final PayloadAdapter payloadAdapter;
 
-    public LoggingServerHttpRequestDecorator(ServerHttpRequest delegate, Logger logger, MediaTypeFilter mediaTypeFilter) {
+    public LoggingServerHttpRequestDecorator(ServerHttpRequest delegate, Logger logger, MediaTypeFilter mediaTypeFilter, PayloadAdapter payloadAdapter) {
         super(delegate);
         this.logger = logger;
         this.mediaTypeFilter = mediaTypeFilter;
+        this.payloadAdapter = payloadAdapter;
         flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM); // getBody() isn't called when controller doesn't need it.
     }
 
@@ -50,11 +51,7 @@ public class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorato
             if (logger.isDebugEnabled()) {
                 if (logged) {
                     data.append(" with payload [\n");
-                    if (mediaTypeFilter.encoded(mediaType)) {
-                        data.append(new HexBinaryAdapter().marshal(baos.toByteArray()));
-                    } else {
-                        data.append(baos.toString());
-                    }
+                    data.append(payloadAdapter.toString(baos.toByteArray()));
                     data.append("\n]");
                 }
                 logger.debug(data.toString());

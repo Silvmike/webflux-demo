@@ -10,7 +10,6 @@ import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 import java.io.ByteArrayOutputStream;
 import java.util.Optional;
 
@@ -20,12 +19,14 @@ public class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecora
     private final MediaTypeFilter mediaTypeFilter;
     private final ByteArrayOutputStream baos;
     private final ServerHttpRequest request;
+    private final PayloadAdapter payloadAdapter;
 
-    public LoggingServerHttpResponseDecorator(ServerHttpResponse delegate, ServerHttpRequest request, Logger logger, MediaTypeFilter mediaTypeFilter) {
+    public LoggingServerHttpResponseDecorator(ServerHttpResponse delegate, ServerHttpRequest request, Logger logger, MediaTypeFilter mediaTypeFilter, PayloadAdapter payloadAdapter) {
         super(delegate);
         this.logger = logger;
         this.mediaTypeFilter = mediaTypeFilter;
         this.request = request;
+        this.payloadAdapter = payloadAdapter;
         MediaType mediaType = getHeaders().getContentType();
         if (logger.isDebugEnabled() && mediaTypeFilter.logged(mediaType)) {
             baos = new ByteArrayOutputStream();
@@ -83,11 +84,7 @@ public class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecora
             if (logger.isDebugEnabled()) {
                 if (logged) {
                     data.append("\n[\n");
-                    if (mediaTypeFilter.encoded(mediaType)) {
-                        data.append(new HexBinaryAdapter().marshal(baos.toByteArray()));
-                    } else {
-                        data.append(baos.toString());
-                    }
+                    data.append(payloadAdapter.toString(baos.toByteArray()));
                     data.append("\n]");
                 }
                 logger.debug(data.toString());

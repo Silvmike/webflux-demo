@@ -1,7 +1,6 @@
 package ru.hardcoders.demo.webflux.web_handler.filters.logging;
 
 import org.slf4j.Logger;
-import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.web.server.ServerWebExchange;
@@ -13,24 +12,26 @@ import reactor.core.publisher.Mono;
 public class PayloadLoggingWebFilter implements WebFilter {
 
     public static final MediaTypeFilter DEFAULT_FILTER = new MediaTypeFilter() {};
-    public static final MediaTypeFilter ENCODING_ALL_FILTER = new MediaTypeFilter() {
-        @Override
-        public boolean encoded(MediaType mediaType) {
-            return true;
-        }
-    };
+    public static final PayloadAdapter DEFAULT_PAYLOAD_ADAPTER = new PayloadAdapter() {};
 
     private Logger logger;
 
     private MediaTypeFilter mediaTypeFilter;
+
+    private PayloadAdapter payloadAdapter;
 
     public PayloadLoggingWebFilter(Logger logger) {
         this(logger, DEFAULT_FILTER);
     }
 
     public PayloadLoggingWebFilter(Logger logger, MediaTypeFilter mediaTypeFilter) {
+        this(logger, mediaTypeFilter, DEFAULT_PAYLOAD_ADAPTER);
+    }
+
+    public PayloadLoggingWebFilter(Logger logger, MediaTypeFilter mediaTypeFilter, PayloadAdapter payloadAdapter) {
         this.logger = logger;
         this.mediaTypeFilter = mediaTypeFilter;
+        this.payloadAdapter = payloadAdapter;
     }
 
     public MediaTypeFilter getMediaTypeFilter() {
@@ -39,6 +40,14 @@ public class PayloadLoggingWebFilter implements WebFilter {
 
     public void setMediaTypeFilter(MediaTypeFilter mediaTypeFilter) {
         this.mediaTypeFilter = mediaTypeFilter;
+    }
+
+    public PayloadAdapter getPayloadAdapter() {
+        return payloadAdapter;
+    }
+
+    public void setPayloadAdapter(PayloadAdapter payloadAdapter) {
+        this.payloadAdapter = payloadAdapter;
     }
 
     @Override
@@ -51,8 +60,22 @@ public class PayloadLoggingWebFilter implements WebFilter {
     }
 
     private ServerWebExchange decorate(ServerWebExchange exchange) {
-        final ServerHttpRequest decoratedRequest = new LoggingServerHttpRequestDecorator(exchange.getRequest(), logger, mediaTypeFilter);
-        final ServerHttpResponse decoratedResponse = new LoggingServerHttpResponseDecorator(exchange.getResponse(), exchange.getRequest(), logger, mediaTypeFilter);
+
+        final ServerHttpRequest decoratedRequest = new LoggingServerHttpRequestDecorator(
+                exchange.getRequest(),
+                logger,
+                mediaTypeFilter,
+                payloadAdapter
+        );
+
+        final ServerHttpResponse decoratedResponse = new LoggingServerHttpResponseDecorator(
+                exchange.getResponse(),
+                exchange.getRequest(),
+                logger,
+                mediaTypeFilter,
+                payloadAdapter
+        );
+
         return new ServerWebExchangeDecorator(exchange) {
 
             @Override

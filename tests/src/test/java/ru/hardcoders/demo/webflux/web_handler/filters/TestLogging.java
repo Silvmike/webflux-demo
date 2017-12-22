@@ -30,49 +30,16 @@ import java.util.Collections;
 public class TestLogging {
 
     private static final String TEST_STRING = "TEST";
-    private static final String EXPECTED_LOG_RESULT_REQUEST_HEX = "[POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1";
-    private static final String EXPECTED_LOG_RESULT_REQUEST_NOT_HEX = "[POST] 'http://127.0.0.1:9999/?name=xyz' from null";
-    private static final String EXPECTED_LOG_RESULT_REQUEST_DEBUG_HEX = "[POST] 'http://127.0.0.1:9999/?name=xyz' from null with payload [\n54455354\n]";
-    private static final String EXPECTED_LOG_RESULT_REQUEST_DEBUG_NOT_HEX = "[POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1 with payload [\nTEST\n]";
+    private static final String EXPECTED_LOG_RESULT_REQUEST = "[POST] 'http://127.0.0.1:9999/?name=xyz' from null";
+    private static final String EXPECTED_LOG_RESULT_REQUEST_DEBUG = "[POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1 with payload [\nTEST\n]";
 
-    private static final String EXPECTED_LOG_RESULT_RESPONSE_HEX = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1\n" +
+    private static final String EXPECTED_LOG_RESULT_RESPONSE = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null\n" +
             "Content-Type=[application/json;charset=UTF-8]";
-    private static final String EXPECTED_LOG_RESULT_RESPONSE_NOT_HEX = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null\n" +
-            "Content-Type=[application/json;charset=UTF-8]";
-    private static final String EXPECTED_LOG_RESULT_RESPONSE_DEBUG_HEX = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null\n" +
-            "Content-Type=[application/json;charset=UTF-8]\n" +
-            "[\n" +
-            "34\n" +
-            "]";
-    private static final String EXPECTED_LOG_RESULT_RESPONSE_DEBUG_NOT_HEX = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1\n" +
+    private static final String EXPECTED_LOG_RESULT_RESPONSE_DEBUG = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from 127.0.0.1\n" +
             "Content-Type=[application/json;charset=UTF-8]\n" +
             "[\n" +
             "4\n" +
             "]";
-
-    @Test
-    public void testDebugHex() throws Exception {
-
-        Logger logger = Mockito.mock(Logger.class);
-        Mockito.when(logger.isDebugEnabled()).thenReturn(Boolean.TRUE);
-        Mockito.when(logger.isInfoEnabled()).thenReturn(Boolean.TRUE);
-
-        DispatcherHandler dispatcherHandler = buildWebHandler();
-        final WebTestClient testClient = WebTestClient.bindToWebHandler(new FilteringWebHandler(
-                dispatcherHandler,
-                Collections.singletonList(new PayloadLoggingWebFilter(logger, PayloadLoggingWebFilter.ENCODING_ALL_FILTER))
-        )).configureClient().baseUrl("http://127.0.0.1:9999/").build();
-
-        testClient.post().uri("/?name=xyz")
-                    .body(BodyInserters.fromObject(TEST_STRING))
-                    .exchange()
-                    .expectStatus().isOk()
-                    .expectBody().json(String.valueOf(TEST_STRING.length()));
-
-        Mockito.verify(logger, Mockito.atLeastOnce()).debug(EXPECTED_LOG_RESULT_REQUEST_DEBUG_HEX);
-        Mockito.verify(logger, Mockito.times(1)).debug(EXPECTED_LOG_RESULT_RESPONSE_DEBUG_HEX);
-
-    }
 
     @Test(enabled = false) /* to run manually, starts server on localhost */
     public void testDebug() throws Exception {
@@ -101,42 +68,8 @@ public class TestLogging {
                 .expectStatus().isOk()
                 .expectBody().json(String.valueOf(TEST_STRING.length()));
 
-        Mockito.verify(logger, Mockito.atLeastOnce()).debug(EXPECTED_LOG_RESULT_REQUEST_DEBUG_NOT_HEX);
-        Mockito.verify(logger, Mockito.times(1)).debug(EXPECTED_LOG_RESULT_RESPONSE_DEBUG_NOT_HEX);
-
-        nettyContext.dispose();
-
-    }
-
-    @Test(enabled = false) /* to run manually, starts server on localhost */
-    public void testInfoHex() throws Exception {
-
-        Logger logger = Mockito.mock(Logger.class);
-        Mockito.when(logger.isDebugEnabled()).thenReturn(Boolean.FALSE);
-        Mockito.when(logger.isInfoEnabled()).thenReturn(Boolean.TRUE);
-
-        DispatcherHandler dispatcherHandler = buildWebHandler();
-
-        ReactorHttpHandlerAdapter httpHandlerAdapter = new ReactorHttpHandlerAdapter(
-                new HttpWebHandlerAdapter(
-                        new FilteringWebHandler(
-                                dispatcherHandler,
-                                Collections.singletonList(new PayloadLoggingWebFilter(logger, PayloadLoggingWebFilter.ENCODING_ALL_FILTER))
-                        )
-                )
-        );
-
-        NettyContext nettyContext = HttpServer.create("127.0.0.1", 9999).newHandler(httpHandlerAdapter).block();
-        final WebTestClient testClient = WebTestClient.bindToServer().baseUrl("http://127.0.0.1:9999/").build();
-
-        testClient.post().uri("/?name=xyz")
-                .body(BodyInserters.fromObject(TEST_STRING))
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody().json(String.valueOf(TEST_STRING.length()));
-
-        Mockito.verify(logger, Mockito.atLeastOnce()).info(EXPECTED_LOG_RESULT_REQUEST_HEX);
-        Mockito.verify(logger, Mockito.times(1)).info(EXPECTED_LOG_RESULT_RESPONSE_HEX);
+        Mockito.verify(logger, Mockito.atLeastOnce()).debug(EXPECTED_LOG_RESULT_REQUEST_DEBUG);
+        Mockito.verify(logger, Mockito.times(1)).debug(EXPECTED_LOG_RESULT_RESPONSE_DEBUG);
 
         nettyContext.dispose();
 
@@ -152,7 +85,7 @@ public class TestLogging {
         DispatcherHandler dispatcherHandler = buildWebHandler();
         final WebTestClient testClient = WebTestClient.bindToWebHandler(new FilteringWebHandler(
                 dispatcherHandler,
-                Collections.singletonList(new PayloadLoggingWebFilter(logger, PayloadLoggingWebFilter.ENCODING_ALL_FILTER))
+                Collections.singletonList(new PayloadLoggingWebFilter(logger))
         )).configureClient().baseUrl("http://127.0.0.1:9999/").build();
 
         testClient.post().uri("/?name=xyz")
@@ -161,8 +94,8 @@ public class TestLogging {
                 .expectStatus().isOk()
                 .expectBody().json(String.valueOf(TEST_STRING.length()));
 
-        Mockito.verify(logger, Mockito.atLeastOnce()).info(EXPECTED_LOG_RESULT_REQUEST_NOT_HEX);
-        Mockito.verify(logger, Mockito.times(1)).info(EXPECTED_LOG_RESULT_RESPONSE_NOT_HEX);
+        Mockito.verify(logger, Mockito.atLeastOnce()).info(EXPECTED_LOG_RESULT_REQUEST);
+        Mockito.verify(logger, Mockito.times(1)).info(EXPECTED_LOG_RESULT_RESPONSE);
 
     }
 

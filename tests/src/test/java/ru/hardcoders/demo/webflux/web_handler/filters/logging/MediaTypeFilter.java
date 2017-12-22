@@ -8,8 +8,4 @@ public interface MediaTypeFilter {
         return true;
     }
 
-    default boolean encoded(MediaType mediaType) {
-        return false;
-    }
-
 }
