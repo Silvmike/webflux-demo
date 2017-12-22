@@ -14,7 +14,7 @@ public class PayloadLoggingWebFilter implements WebFilter {
     public static final MediaTypeFilter DEFAULT_FILTER = new MediaTypeFilter() {};
     public static final PayloadAdapter DEFAULT_PAYLOAD_ADAPTER = new PayloadAdapter() {};
 
-    private Logger logger;
+    private final Logger logger;
 
     private MediaTypeFilter mediaTypeFilter;
 

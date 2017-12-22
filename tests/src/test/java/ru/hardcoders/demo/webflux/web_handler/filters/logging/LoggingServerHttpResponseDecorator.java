@@ -69,7 +69,7 @@ public class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecora
         MediaType mediaType = getHeaders().getContentType();
         boolean logged = mediaTypeFilter.logged(mediaType);
         if (logger.isInfoEnabled()) {
-            final StringBuffer data = new StringBuffer();
+            final StringBuilder data = new StringBuilder();
             data.append("Response for [").append(request.getMethodValue())
                     .append("] '").append(String.valueOf(request.getURI()))
                     .append("' from ")
@@ -78,9 +78,7 @@ public class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecora
                                     .map( addr -> addr.getHostString() )
                                     .orElse("null")
                     );
-            getHeaders().entrySet().forEach( entry ->  {
-                data.append('\n').append(entry.getKey()).append('=').append(String.valueOf(entry.getValue()));
-            } );
+            getHeaders().forEach((key, value) -> data.append('\n').append(key).append('=').append(String.valueOf(value)));
             if (logger.isDebugEnabled()) {
                 if (logged) {
                     data.append("\n[\n");

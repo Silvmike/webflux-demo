@@ -39,7 +39,7 @@ public class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorato
         MediaType mediaType = getHeaders().getContentType();
         boolean logged = mediaTypeFilter.logged(mediaType);
         if (logger.isInfoEnabled()) {
-            StringBuffer data = new StringBuffer();
+            StringBuilder data = new StringBuilder();
             data.append('[').append(getMethodValue())
                     .append("] '").append(String.valueOf(getURI()))
                     .append("' from ")
