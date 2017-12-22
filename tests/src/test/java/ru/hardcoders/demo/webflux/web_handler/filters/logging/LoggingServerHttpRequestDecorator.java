@@ -5,6 +5,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import reactor.core.publisher.Flux;
 
 import java.io.ByteArrayOutputStream;
@@ -14,15 +15,17 @@ class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorator imple
 
     private final Logger logger;
     private final MediaTypeFilter mediaTypeFilter;
-    private final PayloadAdapter payloadAdapter;
+    private final LogMessageFormatter formatter;
     private final Flux<DataBuffer> decoratedBody;
+    private final ServerHttpResponse response;
 
-    public LoggingServerHttpRequestDecorator(ServerHttpRequest delegate, Logger logger, MediaTypeFilter mediaTypeFilter, PayloadAdapter payloadAdapter) {
+    LoggingServerHttpRequestDecorator(ServerHttpRequest delegate, ServerHttpResponse response, Logger logger, MediaTypeFilter mediaTypeFilter, LogMessageFormatter formatter) {
         super(delegate);
         this.logger = logger;
         this.mediaTypeFilter = mediaTypeFilter;
-        this.payloadAdapter = payloadAdapter;
+        this.formatter = formatter;
         this.decoratedBody = decorateBody(delegate.getBody());
+        this.response = response;
         flushLog(EMPTY_BYTE_ARRAY_OUTPUT_STREAM); // getBody() isn't called when controller doesn't need it.
     }
 
@@ -43,32 +46,43 @@ class LoggingServerHttpRequestDecorator extends ServerHttpRequestDecorator imple
 
     private void flushLog(ByteArrayOutputStream baos) {
         if (logger.isInfoEnabled()) {
-            StringBuilder data = new StringBuilder();
-            data.append('[').append(getMethodValue())
-                    .append("] '").append(String.valueOf(getURI()))
-                    .append("' from ")
-                    .append(
-                            Optional.ofNullable(getRemoteAddress())
-                                    .map(addr -> addr.getHostString())
-                                    .orElse("null")
-                    );
             if (logger.isDebugEnabled()) {
                 if (mediaTypeFilter.logged(getHeaders().getContentType())) {
-                    data.append(" with payload [\n");
-                    data.append(payloadAdapter.toString(baos.toByteArray()));
-                    data.append("\n]");
+                    logger.debug(formatter.format(getDelegate(), this.response, baos.toByteArray()));
+                } else {
+                    logger.debug(formatter.format(getDelegate(), this.response, null));
                 }
-                logger.debug(data.toString());
             } else {
-                logger.info(data.toString());
+                logger.info(formatter.format(getDelegate(), this.response, null));
             }
-
         }
     }
 
     @Override
     public Logger getLogger() {
         return this.logger;
+    }
+
+    static final class DefaultLogMessageFormatter implements LogMessageFormatter {
+
+        @Override
+        public String format(ServerHttpRequest request, ServerHttpResponse response, byte[] payload) {
+            StringBuilder data = new StringBuilder();
+            data.append('[').append(request.getMethodValue())
+                    .append("] '").append(String.valueOf(request.getURI()))
+                    .append("' from ")
+                    .append(
+                            Optional.ofNullable(request.getRemoteAddress())
+                                    .map(addr -> addr.getHostString())
+                                    .orElse("null")
+                    );
+            if (payload != null) {
+                data.append(" with payload [\n");
+                data.append(new String(payload));
+                data.append("\n]");
+            }
+            return data.toString();
+        }
     }
 
 }

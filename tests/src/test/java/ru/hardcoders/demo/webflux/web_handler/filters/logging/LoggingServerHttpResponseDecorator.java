@@ -19,14 +19,14 @@ class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator imp
     private final MediaTypeFilter mediaTypeFilter;
     private final ByteArrayOutputStream baos;
     private final ServerHttpRequest request;
-    private final PayloadAdapter payloadAdapter;
+    private final LogMessageFormatter formatter;
 
-    public LoggingServerHttpResponseDecorator(ServerHttpResponse delegate, ServerHttpRequest request, Logger logger, MediaTypeFilter mediaTypeFilter, PayloadAdapter payloadAdapter) {
+    LoggingServerHttpResponseDecorator(ServerHttpResponse delegate, ServerHttpRequest request, Logger logger, MediaTypeFilter mediaTypeFilter, LogMessageFormatter formatter) {
         super(delegate);
         this.logger = logger;
         this.mediaTypeFilter = mediaTypeFilter;
         this.request = request;
-        this.payloadAdapter = payloadAdapter;
+        this.formatter = formatter;
         MediaType mediaType = getHeaders().getContentType();
         if (logger.isDebugEnabled() && mediaTypeFilter.logged(mediaType)) {
             baos = new ByteArrayOutputStream();
@@ -66,9 +66,28 @@ class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator imp
     }
 
     private void flushLog(ByteArrayOutputStream baos) {
-        MediaType mediaType = getHeaders().getContentType();
-        boolean logged = mediaTypeFilter.logged(mediaType);
         if (logger.isInfoEnabled()) {
+            if (logger.isDebugEnabled()) {
+                if (mediaTypeFilter.logged(getHeaders().getContentType())) {
+                    logger.debug(formatter.format(this.request, getDelegate(), baos.toByteArray()));
+                }
+                logger.debug(formatter.format(this.request, getDelegate(), null));
+            } else {
+                logger.info(formatter.format(this.request, getDelegate(), null));
+            }
+
+        }
+    }
+
+    @Override
+    public Logger getLogger() {
+        return this.logger;
+    }
+
+    static final class DefaultLogMessageFormatter implements LogMessageFormatter {
+
+        @Override
+        public String format(ServerHttpRequest request, ServerHttpResponse response, byte[] payload) {
             final StringBuilder data = new StringBuilder();
             data.append("Response for [").append(request.getMethodValue())
                     .append("] '").append(String.valueOf(request.getURI()))
@@ -78,24 +97,14 @@ class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator imp
                                     .map( addr -> addr.getHostString() )
                                     .orElse("null")
                     );
-            getHeaders().forEach((key, value) -> data.append('\n').append(key).append('=').append(String.valueOf(value)));
-            if (logger.isDebugEnabled()) {
-                if (logged) {
-                    data.append("\n[\n");
-                    data.append(payloadAdapter.toString(baos.toByteArray()));
-                    data.append("\n]");
-                }
-                logger.debug(data.toString());
-            } else {
-                logger.info(data.toString());
+            response.getHeaders().forEach((key, value) -> data.append('\n').append(key).append('=').append(String.valueOf(value)));
+            if (payload != null) {
+                data.append("\n[\n");
+                data.append(new String(payload));
+                data.append("\n]");
             }
-
+            return data.toString();
         }
-    }
-
-    @Override
-    public Logger getLogger() {
-        return this.logger;
     }
 
 }

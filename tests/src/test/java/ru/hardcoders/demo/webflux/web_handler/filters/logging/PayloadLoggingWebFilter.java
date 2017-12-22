@@ -12,26 +12,23 @@ import reactor.core.publisher.Mono;
 public class PayloadLoggingWebFilter implements WebFilter {
 
     public static final MediaTypeFilter DEFAULT_FILTER = new MediaTypeFilter() {};
-    public static final PayloadAdapter DEFAULT_PAYLOAD_ADAPTER = new PayloadAdapter() {};
 
     private final Logger logger;
 
     private MediaTypeFilter mediaTypeFilter;
 
-    private PayloadAdapter payloadAdapter;
+    private LogMessageFormatter requestMessageFromatter;
+    private LogMessageFormatter responseMessageFromatter;
 
     public PayloadLoggingWebFilter(Logger logger) {
         this(logger, DEFAULT_FILTER);
     }
 
     public PayloadLoggingWebFilter(Logger logger, MediaTypeFilter mediaTypeFilter) {
-        this(logger, mediaTypeFilter, DEFAULT_PAYLOAD_ADAPTER);
-    }
-
-    public PayloadLoggingWebFilter(Logger logger, MediaTypeFilter mediaTypeFilter, PayloadAdapter payloadAdapter) {
         this.logger = logger;
         this.mediaTypeFilter = mediaTypeFilter;
-        this.payloadAdapter = payloadAdapter;
+        this.requestMessageFromatter = new LoggingServerHttpRequestDecorator.DefaultLogMessageFormatter();
+        this.responseMessageFromatter = new LoggingServerHttpResponseDecorator.DefaultLogMessageFormatter();
     }
 
     public MediaTypeFilter getMediaTypeFilter() {
@@ -42,12 +39,20 @@ public class PayloadLoggingWebFilter implements WebFilter {
         this.mediaTypeFilter = mediaTypeFilter;
     }
 
-    public PayloadAdapter getPayloadAdapter() {
-        return payloadAdapter;
+    public LogMessageFormatter getRequestMessageFromatter() {
+        return requestMessageFromatter;
     }
 
-    public void setPayloadAdapter(PayloadAdapter payloadAdapter) {
-        this.payloadAdapter = payloadAdapter;
+    public void setRequestMessageFromatter(LogMessageFormatter requestMessageFromatter) {
+        this.requestMessageFromatter = requestMessageFromatter;
+    }
+
+    public LogMessageFormatter getResponseMessageFromatter() {
+        return responseMessageFromatter;
+    }
+
+    public void setResponseMessageFromatter(LogMessageFormatter responseMessageFromatter) {
+        this.responseMessageFromatter = responseMessageFromatter;
     }
 
     @Override
@@ -63,9 +68,10 @@ public class PayloadLoggingWebFilter implements WebFilter {
 
         final ServerHttpRequest decoratedRequest = new LoggingServerHttpRequestDecorator(
                 exchange.getRequest(),
+                exchange.getResponse(),
                 logger,
                 mediaTypeFilter,
-                payloadAdapter
+                new LoggingServerHttpRequestDecorator.DefaultLogMessageFormatter()
         );
 
         final ServerHttpResponse decoratedResponse = new LoggingServerHttpResponseDecorator(
@@ -73,7 +79,7 @@ public class PayloadLoggingWebFilter implements WebFilter {
                 exchange.getRequest(),
                 logger,
                 mediaTypeFilter,
-                payloadAdapter
+                new LoggingServerHttpResponseDecorator.DefaultLogMessageFormatter()
         );
 
         return new ServerWebExchangeDecorator(exchange) {
