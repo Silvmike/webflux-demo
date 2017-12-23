@@ -40,7 +40,7 @@ public class MaxPayloadSizeFilter implements WebFilter {
                             return Flux.error(new TooLongPayloadException("too long payload: read " + size.get() + " bytes, max is " + maxPayloadSize));
                         }
                         return Flux.just(dataBuffer);
-                    }).skipWhile(x -> { return size.get() > maxPayloadSize; });
+                    });
 
                 }
 
