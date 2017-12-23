@@ -36,8 +36,8 @@ public class TestLogging {
             "WebTestClient-Request-Id=[1]\n" +
             "Content-Type=[text/plain;charset=UTF-8]\n[\nTEST\n]";
 
-    private static final String EXPECTED_LOG_RESULT_RESPONSE = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null";
-    private static final String EXPECTED_LOG_RESULT_RESPONSE_DEBUG = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null\n" +
+    private static final String EXPECTED_LOG_RESULT_RESPONSE = "Response [200] for [POST] 'http://127.0.0.1:9999/?name=xyz' from null";
+    private static final String EXPECTED_LOG_RESULT_RESPONSE_DEBUG = "Response [200] for [POST] 'http://127.0.0.1:9999/?name=xyz' from null\n" +
             "Content-Type=[application/json;charset=UTF-8]\n" +
             "[\n4\n]";
 
