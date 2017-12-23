@@ -1,10 +1,12 @@
 package ru.hardcoders.demo.webflux.web_handler.filters;
 
-import org.mockito.Mockito;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.codec.StringDecoder;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.DecoderHttpMessageReader;
 import org.springframework.http.codec.EncoderHttpMessageWriter;
@@ -19,74 +21,66 @@ import org.springframework.web.reactive.result.method.annotation.RequestMappingH
 import org.springframework.web.reactive.result.method.annotation.ResponseBodyResultHandler;
 import org.springframework.web.server.adapter.HttpWebHandlerAdapter;
 import org.springframework.web.server.handler.FilteringWebHandler;
+import org.testng.Assert;
 import org.testng.annotations.Test;
-import reactor.ipc.netty.NettyContext;
+import reactor.core.publisher.Flux;
 import reactor.ipc.netty.http.server.HttpServer;
-import ru.hardcoders.demo.webflux.web_handler.filters.logging.RequestLoggingWebFilter;
-import ru.hardcoders.demo.webflux.web_handler.filters.logging.ResponseLoggingWebFilter;
+import ru.hardcoders.demo.webflux.web_handler.filters.size.TestMaxPayloadSizeFilter;
 
-import java.util.Arrays;
 import java.util.Collections;
 
-public class TestLogging {
+public class TestPayloadSize {
 
-    private static final String TEST_STRING = "TEST";
-    private static final String EXPECTED_LOG_RESULT_REQUEST = "[POST] 'http://127.0.0.1:9999/?name=xyz' from null";
-    private static final String EXPECTED_LOG_RESULT_REQUEST_DEBUG = "[POST] 'http://127.0.0.1:9999/?name=xyz' from null\n" +
-            "WebTestClient-Request-Id=[1]\n" +
-            "Content-Type=[text/plain;charset=UTF-8]\n[\nTEST\n]";
+    private static final Logger logger = LoggerFactory.getLogger(TestPayloadSize.class);
 
-    private static final String EXPECTED_LOG_RESULT_RESPONSE = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null";
-    private static final String EXPECTED_LOG_RESULT_RESPONSE_DEBUG = "Response for [POST] 'http://127.0.0.1:9999/?name=xyz' from null\n" +
-            "Content-Type=[application/json;charset=UTF-8]\n" +
-            "[\n4\n]";
+    private static final int TEST_PAYLOAD_COUNT = 10;
+    private static final int TEST_PAYLOAD_SIZE = 8192;
+    private static final int TEST_FULL_PAYLOAD_SIZE = TEST_PAYLOAD_SIZE * TEST_PAYLOAD_COUNT;
 
-    @Test
-    public void testDebug() throws Exception {
+    @Test(enabled = false) /* to run manually, starts server on localhost */
+    public void test() throws Exception {
 
-        Logger logger = Mockito.mock(Logger.class);
-        Mockito.when(logger.isDebugEnabled()).thenReturn(Boolean.TRUE);
-        Mockito.when(logger.isInfoEnabled()).thenReturn(Boolean.TRUE);
+        TestMaxPayloadSizeFilter testMaxPayloadSizeFilter = new TestMaxPayloadSizeFilter(10);
 
         DispatcherHandler dispatcherHandler = buildWebHandler();
-        final WebTestClient testClient = WebTestClient.bindToWebHandler(new FilteringWebHandler(
-                dispatcherHandler,
-                Arrays.asList(new RequestLoggingWebFilter(logger), new ResponseLoggingWebFilter(logger))
-        )).configureClient().baseUrl("http://127.0.0.1:9999/").build();
+
+        HttpServer.create("127.0.0.1", 9999).newHandler(
+                new ReactorHttpHandlerAdapter(
+                        new HttpWebHandlerAdapter(
+                            new FilteringWebHandler(
+                                    dispatcherHandler,
+                                    Collections.singletonList(testMaxPayloadSizeFilter)
+                            )
+                        )
+                )).block();
+
+        final WebTestClient testClient = WebTestClient.bindToServer()
+                .baseUrl("http://127.0.0.1:9999/").build();
+
+        Flux<DataBuffer> generatedBody = generateBody();
 
         testClient.post().uri("/?name=xyz")
-                .body(BodyInserters.fromObject(TEST_STRING))
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(BodyInserters.fromDataBuffers(generatedBody))
                 .exchange()
-                .expectStatus().isOk()
-                .expectBody().json(String.valueOf(TEST_STRING.length()));
+                .expectStatus().isBadRequest();
 
-        Mockito.verify(logger, Mockito.atLeastOnce()).debug(EXPECTED_LOG_RESULT_REQUEST_DEBUG);
-        Mockito.verify(logger, Mockito.times(1)).debug(EXPECTED_LOG_RESULT_RESPONSE_DEBUG);
+        Assert.assertTrue(testMaxPayloadSizeFilter.lastCounter.get() < TEST_FULL_PAYLOAD_SIZE);
+        logger.info("Read bytes: " + testMaxPayloadSizeFilter.lastCounter.get());
 
     }
 
-    @Test
-    public void testInfo() throws Exception {
-
-        Logger logger = Mockito.mock(Logger.class);
-        Mockito.when(logger.isDebugEnabled()).thenReturn(Boolean.FALSE);
-        Mockito.when(logger.isInfoEnabled()).thenReturn(Boolean.TRUE);
-
-        DispatcherHandler dispatcherHandler = buildWebHandler();
-        final WebTestClient testClient = WebTestClient.bindToWebHandler(new FilteringWebHandler(
-                dispatcherHandler,
-                Arrays.asList(new RequestLoggingWebFilter(logger), new ResponseLoggingWebFilter(logger))
-        )).configureClient().baseUrl("http://127.0.0.1:9999/").build();
-
-        testClient.post().uri("/?name=xyz")
-                .body(BodyInserters.fromObject(TEST_STRING))
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody().json(String.valueOf(TEST_STRING.length()));
-
-        Mockito.verify(logger, Mockito.atLeastOnce()).info(EXPECTED_LOG_RESULT_REQUEST);
-        Mockito.verify(logger, Mockito.times(1)).info(EXPECTED_LOG_RESULT_RESPONSE);
-
+    private Flux<DataBuffer> generateBody() {
+        DefaultDataBufferFactory defaultDataBufferFactory = new DefaultDataBufferFactory();
+        Flux<DataBuffer> flux = Flux.just();
+        for (int i = 0; i<TEST_PAYLOAD_COUNT; i++) {
+            byte[] payload = new byte[TEST_FULL_PAYLOAD_SIZE];
+            for (int j = 0; j<TEST_FULL_PAYLOAD_SIZE; j++) {
+                payload[i] = (byte) (i % 256);
+            }
+            flux = flux.concatWith(Flux.just(defaultDataBufferFactory.wrap(payload)));
+        }
+        return flux;
     }
 
     private DispatcherHandler buildWebHandler() throws Exception {

@@ -3,6 +3,7 @@ package ru.hardcoders.demo.webflux.web_handler.filters.logging;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -89,7 +90,9 @@ class LoggingServerHttpResponseDecorator extends ServerHttpResponseDecorator imp
         @Override
         public String format(ServerHttpRequest request, ServerHttpResponse response, byte[] payload) {
             final StringBuilder data = new StringBuilder();
-            data.append("Response for [").append(request.getMethodValue())
+            data.append("Response [")
+                    .append(Optional.ofNullable(response.getStatusCode()).orElse(HttpStatus.OK))
+                    .append("] for [").append(request.getMethodValue())
                     .append("] '").append(String.valueOf(request.getURI()))
                     .append("' from ")
                     .append(

@@ -9,6 +9,9 @@
         </layout>
     </appender>
 
+    <logger name="reactor.ipc.netty.http.server.HttpServer" level="INFO"/>
+    <logger name="reactor.ipc.netty.http.client.HttpClient" level="INFO"/>
+
     <root level="DEBUG">
         <appender-ref ref="STDOUT" />
     </root>
