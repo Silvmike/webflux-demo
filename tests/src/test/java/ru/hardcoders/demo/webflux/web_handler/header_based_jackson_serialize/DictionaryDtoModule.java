@@ -14,7 +14,7 @@ class DictionaryDtoModule extends SimpleModule {
             @Override
             public void serialize(DictionaryDto value, JsonGenerator gen, SerializerProvider provider) throws IOException {
                 String locale = (String) provider.getAttribute(DictionaryDtoJackson2Encoder.LOCALE_KEY);
-                gen.writeRawValue(value.getLocaled(locale));
+                gen.writeString(value.getLocaled(locale));
             }
         });
     }

@@ -43,7 +43,7 @@ public class TestHeaderBasedSerialization {
     }
 
     @Test
-    public void testInfo() throws Exception {
+    public void testWithoutServer() throws Exception {
 
         DispatcherHandler dispatcherHandler = buildWebHandler();
 
@@ -63,7 +63,7 @@ public class TestHeaderBasedSerialization {
                 .exchange()
                 .expectStatus().isOk().expectBody().returnResult().getResponseBody();
 
-        Assert.assertEquals(enResult, expectedResult.getBytes());
+        Assert.assertEquals(enResult, ("\"" + expectedResult + "\"").getBytes());
     }
 
     private DispatcherHandler buildWebHandler() throws Exception {
