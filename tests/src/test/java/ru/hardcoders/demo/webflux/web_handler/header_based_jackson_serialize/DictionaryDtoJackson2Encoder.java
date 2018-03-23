@@ -37,7 +37,7 @@ public class DictionaryDtoJackson2Encoder extends AbstractJackson2Encoder {
     @Override
     protected ObjectWriter customizeWriter(ObjectWriter writer, MimeType mimeType, ResolvableType elementType, Map<String, Object> hints) {
         ObjectWriter newWriter = super.customizeWriter(writer, mimeType, elementType, hints);
-        SerializationConfig serializationConfig = newWriter.getConfig().with(writer.getAttributes().withPerCallAttribute("locale", hints.get("locale")));
+        SerializationConfig serializationConfig = newWriter.getConfig().with(writer.getAttributes().withPerCallAttribute(LOCALE_KEY, hints.get(LOCALE_KEY)));
         return new ObjectWriter(newWriter, serializationConfig) {};
     }
 
