@@ -14,6 +14,7 @@ import org.springframework.web.reactive.result.method.annotation.RequestMappingH
 import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.reactive.result.method.annotation.ResponseBodyResultHandler;
 import org.springframework.web.server.adapter.HttpWebHandlerAdapter;
+import org.springframework.web.server.i18n.AcceptHeaderLocaleContextResolver;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 import reactor.ipc.netty.http.server.HttpServer;
@@ -77,18 +78,24 @@ public class TestHeaderBasedSerialization {
         RequestMappingHandlerAdapter handlerAdapter = new RequestMappingHandlerAdapter();
         beanFactory.registerSingleton("handlerAdapter", handlerAdapter);
 
+
+        // HandlerResultHandler
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new DictionaryDtoModule());
 
-        // HandlerResultHandler
+        AcceptHeaderLocaleContextResolver localeContextResolver = new AcceptHeaderLocaleContextResolver();
+
         ResponseBodyResultHandler responseResultHandler = new ResponseBodyResultHandler(
                 Collections.singletonList(
-                        new EncoderHttpMessageWriter<>(new DictionaryDtoJackson2Encoder(mapper))
+                    new EncoderHttpMessageWriter<>(
+                        new DictionaryDtoJackson2Encoder(mapper,localeContextResolver)
+                    )
                 ),
                 new FixedContentTypeResolver(MediaType.APPLICATION_JSON_UTF8)
         );
 
         beanFactory.registerSingleton("responseHandler", responseResultHandler);
+
 
         // controller
         beanFactory.registerSingleton("testHandler", new LocaledController());
